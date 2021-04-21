@@ -8,6 +8,7 @@ def gen_number(n:int, m:int, prefix=None):
 		gen_number(n, m-1, prefix)
 		prefix.pop()
 	return
+
 def simple_gen(m, prefix=""):
 	if m == 0:
 		print (prefix)
@@ -41,6 +42,6 @@ def find(number, A):
 
 
 if __name__ == "__main__":
-	#gen_number(2,2)
-	#simple_gen(3)
+	gen_number(2,2)
+	simple_gen(3)
 	gen_permutations(3,3)
