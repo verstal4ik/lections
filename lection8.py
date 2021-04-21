@@ -32,12 +32,10 @@ def gen_permutations(m:int, n:int, prefix=None):
 
 def find(number, A):
 	flag = False
-
 	for x in A:
 		if number == x:
 			flag = True
 			break
-	print(number, A, flag)
 	return flag
 
 
