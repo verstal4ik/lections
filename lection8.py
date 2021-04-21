@@ -1,4 +1,8 @@
 def gen_number(n:int, m:int, prefix=None):
+	"""Генерация чисел в любой системе счисления
+	На входе n - число цифр в сс
+	m - длина сс
+	"""
 	if m == 0:
 		print (prefix)
 		return
@@ -7,7 +11,7 @@ def gen_number(n:int, m:int, prefix=None):
 		prefix.append(digit)
 		gen_number(n, m-1, prefix)
 		prefix.pop()
-	return
+	
 
 def simple_gen(m, prefix=""):
 	if m == 0:
