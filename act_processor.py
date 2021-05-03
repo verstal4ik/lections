@@ -13,40 +13,47 @@ def main(timbers, group = [18, 22, 25, 35]):
     """Функция сортировки списка бревен. 
     На входе массив из бревен timbers
     groups группы по которым надо разбить
-    На выходе списки предварительно заполненные нулями:
-    timbers6m - зачет как 6 метров
-    timbers57m - зачет как 5.7 метров
-    timbersdeffect - учтенный как брак
-    timbers1C - для импорта в 1С
+
+    timbers6m - список бревен в зачет как 6 метров ["Диапазон", кол-во, объем] с итогом ['Итого', Сумма всех кол-в, Сумма всеx объемов]
+    timbers57m - список бревен в зачет как 5.7 метров разбитый по группам как и timbers6m, с двумя итогам: до 6.05 и выше 6.20.
+    timbers_def - список учтенный, как брак. Все браки из списка header_def сопоставленный с качеством указанных в sort_mathcing. Ключи сформированны в lsort, value: указатель в под каким индексом в regsort
+    timbers1C - список для импорта в 1С
+    timbers_logs - для фиксации log'a 
+    timbers_data - список для вкладки данные, без изменений то, что было на входе.
 
     Diametr_KM - диаметр комля на окорке для автокачества 
     regsort - список зарегистрированных сортов, которые формирует lsort
-    d_min - первое значение из группы, берем как минимум по которому будет присваиться Диаметр менее
-    В regsort важен порядок, чем ближе к началу, тем больше приоритет для выбора при сравнение 
+    regsort важен порядок, чем ближе к началу, тем больше приоритет для выбора при сравнение 
+    d_min - первое значение из группы, берем как минимум по которому будет присваиться качество D<
     header_def - заголовки браков для формирования в excel
     sort_matching - сопоставление значений regsort индексам header_def для последующей обработке
     """
 
     Diametr_KM = 50 
     d_min = group[0]
-    regsort = ["Металл", "L<57", "D<", "C", "Cx", "D", "Dc", "KM", "AB"]
-    header_def = ["Диаметр <{}".format(d_min) , "D (кривизна)", "D (комель > 50,см", "Металл", "L (длина < 5.7 м)", "C (сучки, пасынки, заком-ть)", "Итого, брак"]
+    regsort = ["Металл", "L<57", "D<{}".format(d_min), "C", "Cx", "D", "Dc", "KM", "AB"]
+    header_def = ["Диаметр <{}".format(d_min) , "D (кривизна)", "D (комель > 50,см", "Металл", "L (длина < 5.7 м)", "C (сучки, пасынки, заком-ть)","Cx (гниль, синева)", "Итого, брак"]
     sort_matching = {
-                    "D<": 0,
+                    "D<{}".format(d_min): 0,
                     "D": 1,
                     "KM": 2,
                     "Металл": 3,
-                    "L<57": 4,
+                    "L": 4,
                     "C": 5,
                     "Cx": 6,
-                    "Dc": 1,}
+                    "Dc": 1,
+                    }
 
     timbers6m = [["AB {}-{}, см".format(group[i], group[i+1]), 0, 0] if i < len(group) - 1 else ["АВ от {} см. в торце до {} см. в комле".format(group[i], Diametr_KM), 0, 0] for i in range(len(group))]
     timbers57m = [record[:] for record in timbers6m]
+    timbers6m.append(['Итого:', 0, 0])
+    timbers57m.append(['Итого, <6,05:', 0, 0])
+    timbers57m.append(['Итого, >6,20:', 0, 0])
     timbers_def = [[s, 0, 0] for s in header_def]
+    timbers_data = timbers
+    timbers_logs = [] 
+    timbers1C = []
 
-    timbers1C = {}
-    timbers_data = []
     i = 0
     N = len(timbers)
     n6 = n57 = ndef = 0
@@ -56,31 +63,58 @@ def main(timbers, group = [18, 22, 25, 35]):
         #Кажется можно изящее 2 последующих if переопределеяе сорт если диаметр менее нужного или длина.
         #FIXME
         if diametr < d_min:
-            sort = assign_sort(sort, "D<", regsort)
+            sort = assign_sort(sort, "D<{}".format(d_min), regsort)
         
         length = check_length(timbers[i][5], timbers[i+1][5])
         if length == 5: 
-            sort = assign_sort(sort, "L<57", regsort)
-
+            sort = assign_sort(sort, "L", regsort)
 
         if sort == "AB" and length == 6 and diametr >= d_min:
-            n6 += 1
-            add_to_table(diametr = diametr, group = group, table = timbers6m, volumes = volume6)
+            timbers6m[-1][2] += volume6[diametr]
+            timbers6m[-1][1] += 1
+            add_to_table(diametr = diametr, group = group, table = timbers6m, volumes = volume6, length = length)
+            add_to_1c(diametr = diametr, table = timbers1C, sort = sort, length = length)
 
         elif sort == "AB" and length == 5.7 and diametr >= d_min:
-            n57 += 1
+            timbers57m[-2][2] += volume57[diametr]
+            timbers57m[-2][1] += 1
             add_to_table(diametr = diametr, group = group, table = timbers57m, volumes = volume57)
-
+            add_to_1c(diametr = diametr, table = timbers1C, sort = sort, length = 5.7)
+        
+        elif sort == "AB" and length == 6.5 and diametr >= d_min:
+            timbers57m[-1][2] += volume57[diametr]
+            timbers57m[-1][1] += 1
+            add_to_table(diametr = diametr, group = group, table = timbers57m, volumes = volume57)
+            add_to_1c(diametr = diametr, table = timbers1C, sort = sort, length = 5.7)
+        
         else:
-            ndef += 1
             add_to_table_def(diametr = diametr, sort = sort, table = timbers_def, regsort = regsort, header_def = header_def,  sort_matching =  sort_matching, volumes = volume6 )
-            
+            add_to_1c(diametr = diametr, table = timbers1C, sort = sort, length = length)
+
         i += 2
 
+    timbers1C = mysort_table(timbers1C)
     return {'timbers6': timbers6m, 'timbers57m': timbers57m, 'timbers_def': timbers_def, 'timbers1C': timbers1C, 'timbers_data': timbers_data}
 
-def min(a, b, d_min):
+def add_to_1c(diametr=69, sort='AB', length=6, table = None):
+    """Принять данные на входе,
+    Через функцию затем, чтобы если что делать подмены и изменять данные если необходимо 
+    """
+    table.append([sort, length, diametr])
+
+def mysort_table(table):
+    table2 = []
+    for t in table:
+        if t[2] > 26:
+            
+            table2.append(t)
+
+
+    return table2
+
+def min(a, b, d_min=14):
     """ Поиск минимального диаметра
+    Добавить отбраковку по диаметру менее d_min, т.е. переопределить сорт
     """
     
     if a > b:
@@ -120,14 +154,16 @@ def check_length(l1:str, l2:str):
     sumlength = l1 + l2 + notch
     if sumlength <= 5.7:
         l = 5
-    elif (sumlength > 5.7 and sumlength < 6.02) or sumlength > 6.20:
+    elif (sumlength > 5.7 and sumlength < 6.02):
         l = 5.7
+    elif sumlength > 6.20:
+        l = 6.5
     else:
         l = 6
     
     return l
 
-def add_to_table(diametr, table=None, group=None, volumes=None):
+def add_to_table(diametr=0, table=None, group=None, volumes=None, length=6):
     """Функция вычисляет объем на основании диаметра бревна и ведет подсчет количества.
     Добавляет в необходимый список в списке table кол-во и суммирует
     Аргументы функции: 
@@ -135,20 +171,25 @@ def add_to_table(diametr, table=None, group=None, volumes=None):
     table - список ...
     group - группы диаметров
     volumes - словарь объемов ключ диаметр, значение объем
+    Интересно себе ведет без break, залазит зачем то в следующую группу...
     
     """
-    # 
 
-    group = group or [0, 20, 40, 80]
-    for g in range(len(group)-1):
-        if diametr >= group[g] and diametr < group[g+1]:
+    group = group or [10, 20, 40, 80]
+
+    for g in range(len(group) - 1):
+        if (diametr >= group[g]) and (diametr < group[g+1]):
             table[g][1] += 1
             table[g][2] += volumes[diametr]
+            break
+        
         elif diametr >= group[g+1]:
             table[g+1][1] += 1
             table[g+1][2] += volumes[diametr]
+            break
         else:
-            return -1
+            table[g+1][1] += 9999
+
 
 def add_to_table_def(diametr, sort, table, regsort, header_def, sort_matching, volumes = None):
     """Функция заполняет таблицу с теми сортами которые попали в брак.
@@ -156,9 +197,11 @@ def add_to_table_def(diametr, sort, table, regsort, header_def, sort_matching, v
     Пока объем по 6 метрам засчитываем, может считать по фактической длине?
 
     """
-    print (diametr, sort)
-    table[sort_matching[sort]][1] =+ 1 
-    table[sort_matching[sort]][2] =+ volumes[diametr]
+
+    table[sort_matching[sort]][1] += 1 
+    table[sort_matching[sort]][2] += volumes[diametr]
+    table[-1][1] += 1 
+    table[-1][2] += volumes[diametr]  
 
 
 def test_proccessor():
@@ -175,7 +218,7 @@ def test_proccessor():
     ['10','Сосна', 'AB', '271' ,27, '3,03', '0,200'] ,  
     ['11','Сосна', 'x', '281' ,28, '3,04', '0,220'] ,   
     ['12','Сосна', 'AB', '236' ,24, '2,65', '0,157'] ,  
-    ['13','Сосна', 'AB', '246' ,25, '3,04', '0,170'] ,  
+    ['13','Сосна', 'AB', '246' ,13, '3,04', '0,170'] ,  
     ['14','Сосна', 'AB', '273' ,27, '3,06', '0,200'] ,  
     ['15','Сосна', 'C', '238' ,24, '3,03', '0,157'] ,   
     ['16','Сосна', 'AB', '271' ,27, '3,07', '0,200'] ,  
@@ -194,13 +237,13 @@ def test_proccessor():
     ['29','Сосна', 'AB', '212' ,14, '3,07', '0,118'] ,
     ['30','Сосна', 'D', '192' ,19, '3,05', '0,096'] ,
     ['31','Сосна', 'AB', '192' ,19, '3,05', '0,096'] ,
-    ['32','Сосна', 'AB', '192' ,19, '2,95', '0,096'] ,
+    ['32','Сосна', 'AB', '192' ,19, '2,90', '0,096'] ,
     ['33','Сосна', 'AB', '192' ,38, '3,05', '0,096'] ,
     ['34','Сосна', 'AB', '192' ,40, '2,95', '0,096']    
     ]
     x = main(lst_timber, group = [14, 18, 24, 28, 32, 36]) 
-    print (x['timbers6'])
-
+    #print (*x['timbers6'], *x['timbers57m'], *x['timbers_def'], *x['timbers_data'], sep="\n")
+    print (*x['timbers1C'], sep='\n')
 
 if __name__ == '__main__':
     #test()
