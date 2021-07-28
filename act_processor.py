@@ -2,6 +2,7 @@ from openpyxl import load_workbook, Workbook
 from openpyxl.styles.borders import Border, Side
 from openpyxl.styles import Color, PatternFill, Font, Border
 from openpyxl.styles import colors
+import re
 
 """ Словари объемов, последние цифры на конце. В словарь key - диаметр, value - объем в кубических метрах
 27 для длин 2.7
@@ -73,9 +74,10 @@ def main(timbers, group=[18, 22, 25, 35], mode=6, L1=5.7, L2=6.05, L3=6.20):
     i = 0
     p = 2
 
-    clear_timbers(timbers, alarms)
+    clear_timbers(timbers, alarms, regsort)
     #if N % 2 > 0: return {'timbers6m': timbers6m, 'timbers57m': timbers57m, 'timbers_def': timbers_def, 'timbers1C': timbers1C, 'timbers_data': timbers_data, 'timbers_log': timbers_log}
     N = len(timbers)
+
     while i < N:
         sort = assign_sort(timbers[i][2], timbers[i+1][2], regsort)
         diametr = (min(timbers[i][4], timbers[i+1][4], d_min = d_min)) 
@@ -88,7 +90,7 @@ def main(timbers, group=[18, 22, 25, 35], mode=6, L1=5.7, L2=6.05, L3=6.20):
         
         length = check_length(timbers[i][5], timbers[i+1][5])
         if length == 5:
-            #Перепресваиваем сорт L и делаем длину 6 для зачета объема
+            #Переприсваиваем сорт L и делаем длину 6 для зачета объема
             sort = assign_sort(sort, "L", regsort)
             length = 6
 
@@ -125,17 +127,19 @@ def main(timbers, group=[18, 22, 25, 35], mode=6, L1=5.7, L2=6.05, L3=6.20):
 
     return {'timbers6m': timbers6m, 'timbers57m': timbers57m, 'timbers_def': timbers_def, 'timbers1C': timbers1C, 'timbers_data': timbers_data, 'timbers_log': timbers_log, 'alarms': alarms}
 
-def clear_timbers(timbers, alarms):
+def clear_timbers(timbers, alarms, regsort, d_min = 10, length_min = 2):
     #Функция очистки массива от лишнего,
     #Длины короче
     #Диаметра
     #Проверка на четность для 6 метров
     for t in timbers:
-        if t[4] < 20:
+        if t[4] < d_min:
             timbers.remove(t)
             alarms.append("Очищено от бревен №{} по диаметру".format(t[0]))
-        if float(t[5].replace(',', '.')) < 2.9:
-            alarms.append("Ощичено от бревен №{} по длине".format(t[0]))
+        if float(t[5].replace(',', '.')) <length_min:
+            alarms.append("Очищено от бревен №{} по длине".format(t[0]))
+        if t[2] not in regsort:
+            alarms.append('Сорт "{}" не зарегистрированн в системе и заменен на сорт "Металл" бревно под номером {}'.format(t[2], t[0]))
     if len(timbers) % 2:
         timbers.pop()
         alarms.append("Удалено последнее бревно, т.к. кол-во не четное")
@@ -270,7 +274,25 @@ def add_to_table_def(diametr, sort, table, regsort, header_def, sort_matching, v
     table[sort_matching[sort]][1] += 1 
     table[sort_matching[sort]][2] += volumes[diametr]
     table[-1][1] += 1 
-    table[-1][2] += volumes[diametr]  
+    table[-1][2] += volumes[diametr]
+
+def data_cleaning(basic_info):
+    """Перерабатываем входный данные с парсера для формирования данных таблицы Excel
+    """
+    act_num = basic_info['act_num']
+    act_num = re.search(r'\d+', act_num).group()
+    basic_info['act_num'] = act_num
+
+    date_first = basic_info['date_first']
+    date_first = re.search(r'\d{2}.\d{2}.\d{4}', date_first).group()
+    basic_info['date_first'] = date_first
+
+    date_last = basic_info['date_last']
+    date_last = re.search(r'\d{2}.\d{2}.\d{4}', date_last).group()
+    basic_info['date_last'] = date_last
+
+
+    return basic_info
 
 def export_in_excel(template="template-akt-2021-04.xlsx", **tables):
     """Заполнение шаблона excel
@@ -282,8 +304,7 @@ def export_in_excel(template="template-akt-2021-04.xlsx", **tables):
     timbers57m = tables['timbers57m']
     timbers_def = tables['timbers_def']
     alarms = tables['alarms']
-    ы
-
+    basic_info = tables['basic_info']
     wb = Workbook()
     template = template
     wb = load_workbook(template)
@@ -306,6 +327,17 @@ def export_in_excel(template="template-akt-2021-04.xlsx", **tables):
     for row in range(0, len(timbers_data)):
         for col in range(0, len(timbers_data[row])):
             ws1.cell(column = col+1, row = row+17, value=timbers_data[row][col])
+    #Блок основная информация по акту
+    ws1.cell(column = 3, row = 3, value = basic_info['postavshik'])
+    ws1.cell(column = 3, row = 4, value = basic_info['date_in'])
+    ws1.cell(column = 3, row = 5, value = basic_info['place'])
+    ws1.cell(column = 3, row = 6, value = basic_info['mark'])
+    ws1.cell(column = 3, row = 7, value = basic_info['car_num'])
+    ws1.cell(column = 3, row = 8, value = basic_info['trailer_num'])
+    ws1.cell(column = 3, row = 9, value = basic_info['act_num'])
+    ws1.cell(column = 3, row = 10, value =basic_info['operator'])
+    ws1.cell(column = 3, row = 11, value =basic_info['date_first'])
+    ws1.cell(column = 3, row = 12, value =basic_info['date_last'])
 
     ws1 = wb['log']
     p = 0
@@ -318,6 +350,16 @@ def export_in_excel(template="template-akt-2021-04.xlsx", **tables):
             ws1.cell(column = col+1, row = row+3+p, value=timbers_log[row][col])
 
     ws1 = wb['акт приемки']
+    #Основная информация на листе акт приемки
+    ws1.cell(column=2, row=1, value = basic_info['act_num'])
+    ws1.cell(column=2, row=2, value = basic_info['date_in'])
+    ws1.cell(column=2, row=3, value = basic_info['date_first'])
+    ws1.cell(column=2, row=4, value = basic_info['postavshik'])
+    ws1.cell(column=2, row=5, value = basic_info['place'])
+    ws1.cell(column=2, row=6, value = basic_info['mark'])
+    ws1.cell(column=2, row=7, value = basic_info['car_num'])
+    ws1.cell(column=2, row=8, value = basic_info['trailer_num'])
+
     for row in range(0, len(timbers6m)):
         for col in range(0, len(timbers6m[row])):
             ws1.cell(column = col+1, row = row+11, value=timbers6m[row][col])
@@ -332,8 +374,12 @@ def export_in_excel(template="template-akt-2021-04.xlsx", **tables):
     if len(alarms) != 0:
         ws1.cell(column = 1, row = 27, value="Во вкладке log есть примечания")
     
+
     filename = "akt.xlsx"
-    wb.save((filename))
+    try:
+        wb.save((filename))
+    except (OSError, IOError):
+        print ("Файл занят")
  
 
 
@@ -372,10 +418,35 @@ def test_proccessor():
     ['31','Сосна', 'AB', '192' ,19, '3,05', '0,096'] ,
     ['32','Сосна', 'AB', '192' ,19, '2,90', '0,096'] ,
     ['33','Сосна', 'AB', '192' ,38, '3,05', '0,096'] , 
+    ['34','Сосна', 'E', '192' ,38, '3,05', '0,096'] , 
+    ['35','Сосна', 'AB', '192' ,38, '3,05', '0,096'] , 
     ]
+    basic_info = {
+                'postavshik': 'Арелан',
+                'date_in': '22.01.2011',
+                'place': 'Волхов',
+                'mark': 'Интер',
+                'car_num': 'С 645 ЕР 47' ,
+                'trailer_num': 'АР 2567 47' ,
+                'act_num': 'АКТ№715 ',
+                'operator': 'Володащик Д.В. ' ,
+                'date_first': '27.07.2021 13:47:37' ,
+                'date_last': '27.07.2021 14:59:59 ',
+
+    }
     x = main(lst_timber, group = [14, 18, 24, 28, 32, 36])
-    #print (x)
-    export_in_excel(template="template-akt-2021-04.xlsx", timbers1C = x['timbers1C'], timbers_data = x['timbers_data'], timbers_log = x['timbers_log'], timbers_def = x['timbers_def'], timbers57m = x['timbers57m'], timbers6m = x['timbers6m'], alarms = x['alarms'])
+
+
+    export_in_excel(template="template-akt-2021-04.xlsx", 
+                    timbers1C = x['timbers1C'], 
+                    timbers_data = x['timbers_data'],
+                    timbers_log = x['timbers_log'],
+                    timbers_def = x['timbers_def'],
+                    timbers57m = x['timbers57m'],
+                    timbers6m = x['timbers6m'],
+                    alarms = x['alarms'],
+                    basic_info = data_cleaning(basic_info)
+                    )
     #print (*x['timbers6'], *x['timbers57m'], *x['timbers_def'], *x['timbers_data'], sep="\n")
     #print (*x['timbers1C'], sep='\n')
 
