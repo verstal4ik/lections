@@ -15,13 +15,12 @@ volume3 = {10: 0.026, 11: 0.032, 12: 0.038, 13: 0.045, 14: 0.052, 15: 0.06, 16: 
 volume57 = {10: 0.061, 11: 0.074, 12: 0.087, 13: 0.101, 14: 0.115, 15: 0.13, 16: 0.146, 17: 0.165, 18: 0.183, 19: 0.2, 20: 0.22, 21: 0.24, 22: 0.26, 23: 0.29, 24: 0.31, 25: 0.34, 26: 0.37, 27: 0.4, 28: 0.42, 29: 0.46, 30: 0.49, 31: 0.52, 32: 0.55, 33: 0.59, 34: 0.62, 35: 0.66, 36: 0.7, 37: 0.73, 38: 0.77, 39: 0.81, 40: 0.85, 41: 0.9, 42: 0.94, 43: 0.99, 44: 1.03, 45: 1.08, 46: 1.13, 47: 1.18, 48: 1.22, 49: 1.28, 50: 1.33, 51: 1.38, 52: 1.44, 53: 1.5, 54: 1.56, 55: 1.62, 56: 1.68, 57: 1.74, 58: 1.81, 59: 1.87, 60: 1.94, 61: 2.01, 62: 2.07, 63: 2.13, 64: 2.19, 65: 2.25, 66: 2.32, 67: 2.38, 68: 2.45, 69: 2.51, 70: 2.58} 
 volume6 = {10: 0.065, 11: 0.08, 12: 0.093, 13: 0.108, 14: 0.123, 15: 0.139, 16: 0.155, 17: 0.174, 18: 0.194, 19: 0.212, 20: 0.23, 21: 0.255, 22: 0.28, 23: 0.305, 24: 0.33, 25: 0.36, 26: 0.39, 27: 0.42, 28: 0.45, 29: 0.485, 30: 0.52, 31: 0.555, 32: 0.59, 33: 0.625, 34: 0.66, 35: 0.7, 36: 0.74, 37: 0.78, 38: 0.82, 39: 0.86, 40: 0.9, 41: 0.95, 42: 1, 43: 1.045, 44: 1.09, 45: 1.14, 46: 1.19, 47: 1.245, 48: 1.3, 49: 1.355, 50: 1.41, 51: 1.47, 52: 1.53, 53: 1.59, 54: 1.65, 55: 1.715, 56: 1.78, 57: 1.845, 58: 1.91, 59: 1.98, 60: 2.05, 61: 2.115, 62: 2.18, 63: 2.25, 64: 2.32, 65: 2.38, 66: 2.44, 67: 2.505, 68: 2.57, 69: 2.645, 70: 2.72}
 
-def main(timbers, group=[18, 22, 25, 35], mode=6, L1=5.7, L2=6.05, L3=6.20):
+def main(timbers, group = [18, 20, 22, 24, 26, 35], mode=6, L1=5.7, L2=6.05, L3=6.20):
     """Функция сортировки списка бревен. 
     На входе массив из бревен timbers
     groups группы по которым надо разбить
     mode если указано 6, то складываем из 3 метровых 6 метровые . Если 3, то только
     p - для 6 метров = 2 , для 3 метров 1
-    
     timbers6m - список бревен в зачет как 6 метров ["Диапазон", кол-во, объем] с итогом ['Итого', Сумма всех кол-в, Сумма всеx объемов]
     timbers57m - список бревен в зачет как 5.7 метров разбитый по группам как и timbers6m, с двумя итогам: до 6.05 и выше 6.20.
     timbersE - список бревен которые идут в зачет под категорией E
@@ -29,18 +28,14 @@ def main(timbers, group=[18, 22, 25, 35], mode=6, L1=5.7, L2=6.05, L3=6.20):
     timbers1C - список для импорта в 1С
     timbers_logs - для фиксации log'a 
     timbers_data - список для вкладки данные, без изменений то, что было на входе.
-
-    Diametr_KM - диаметр комля на окорке для автокачества
- 
+    Diametr_KM - диаметр комля на окорке для автокачества 
     L1 - первая граница длины
     L2 - вторая граница длины
-    L3 - 3ья граница длины
-       
+    L3 - 3ья граница длины       
     L1 < L2 < Norm L > L3 > L4 
-
     regsort - кортеж зарегистрированных сортов, которые формирует lsort
     regsort важен порядок, чем ближе к началу, тем больше приоритет для выбора при сравнение 
-    d_min - первое значение из группы, берем как минимум по которому будет присваиться качество D<
+    d_min - первое значение из группы, берем как минимум по которому будет присваиться качество Диаметр<
     header_def - заголовки браков для формирования в excel
     sort_matching - сопоставление значений regsort индексам header_def для последующей обработке
     alarms - сигналы, оповестить, что-то не так
@@ -48,10 +43,10 @@ def main(timbers, group=[18, 22, 25, 35], mode=6, L1=5.7, L2=6.05, L3=6.20):
 
     Diametr_KM = 50 
     d_min = group[0]
-    regsort = ("Металл", "L", "D<{}".format(d_min), "C", "Cx", "D", "Dc", "KM", "E", "AB")
-    header_def = ["Диаметр <{}".format(d_min) , "D (кривизна)", "D (комель > 50 см)", "Металл", "L (длина < 5.7 м)", "C (сучки, пасынки, заком-ть)","Cx (гниль, синева)", "Итого, брак"]
+    regsort = ("Металл", "L", "Диаметр<{}".format(d_min), "C", "Cx", "D", "Dc", "KM", "E", "AB")
+    header_def = ["Диаметр<{}".format(d_min) , "D (кривизна)", "D (комель > 50 см)", "Металл", "L (длина < 5.7 м)", "C (сучки, пасынки, заком-ть)","Cx (гниль, синева)", "Итого, брак"]
     sort_matching = {
-                    "D<{}".format(d_min): 0,
+                    "Диаметр<{}".format(d_min): 0,
                     "D": 1,
                     "KM": 2,
                     "Металл": 3,
@@ -61,10 +56,10 @@ def main(timbers, group=[18, 22, 25, 35], mode=6, L1=5.7, L2=6.05, L3=6.20):
                     "Dc": 1,
                     }
 
-    timbers6m = [["AB {}-{}, см".format(group[i], group[i+1]), 0, 0] if i < len(group) - 1 else ["АВ от {} см. в торце до {} см. в комле".format(group[i], Diametr_KM), 0, 0] for i in range(len(group))]
+    timbers6m = [["AB {}-{}, см".format(group[i], group[i+1]-1), 0, 0] if i < len(group) - 1 else ["АВ от {} см. в торце до {} см. в комле".format(group[i], Diametr_KM), 0, 0] for i in range(len(group))]
     timbers57m = [record[:] for record in timbers6m]
     #FIXME сгенерировать на основе timbersE
-    timbersE = [["E {}-{}, см".format(group[i], group[i+1]), 0, 0] if i < len(group) - 1 else ["E от {} см. в торце до {} см. в комле".format(group[i], Diametr_KM), 0, 0] for i in range(len(group))]
+    timbersE = [["E {}-{}, см".format(group[i], group[i+1]-1), 0, 0] if i < len(group) - 1 else ["E от {} см. в торце до {} см. в комле".format(group[i], Diametr_KM), 0, 0] for i in range(len(group))]
     
     timbers6m.append(['Итого:', 0, 0])
     timbersE.append(['Итого:', 0, 0])
@@ -75,10 +70,8 @@ def main(timbers, group=[18, 22, 25, 35], mode=6, L1=5.7, L2=6.05, L3=6.20):
     timbers_log = [] 
     timbers1C = []
     alarms = []
-
     i = 0
     p = 2
-
     clear_timbers(timbers, alarms, regsort)
     #if N % 2 > 0: return {'timbers6m': timbers6m, 'timbers57m': timbers57m, 'timbers_def': timbers_def, 'timbers1C': timbers1C, 'timbers_data': timbers_data, 'timbers_log': timbers_log}
     N = len(timbers)
@@ -91,7 +84,7 @@ def main(timbers, group=[18, 22, 25, 35], mode=6, L1=5.7, L2=6.05, L3=6.20):
         #Кажется можно изящее 2 последующих if переопределяет сорт, если диаметр менее нужного или длина.
         #FIXME
         if diametr < d_min:
-            sort = assign_sort(sort, "D<{}".format(d_min), regsort)
+            sort = assign_sort(sort, "Диаметр<{}".format(d_min), regsort)
         
         length = check_length(timbers[i][5], timbers[i+1][5])
         if length == 5:
@@ -102,32 +95,25 @@ def main(timbers, group=[18, 22, 25, 35], mode=6, L1=5.7, L2=6.05, L3=6.20):
         if sort == "AB" and length == 6 and diametr >= d_min:
             timbers6m[-1][2] += volume6[diametr]
             timbers6m[-1][1] += 1
-            #print ("AB", '6', diametr)
             add_to_table(diametr = diametr, group = group, table = timbers6m, volumes = volume6, length = length)
             add_to_1c(diametr = diametr, table = timbers1C, sort = sort, length = length)
             add_to_log(target = "6 метров AB",ind = i, sort = 'AB', length = 6, diametr = diametr, timbers_log = timbers_log, timber1 = timber1, timber2 = timber2)
 
         elif sort == "AB" and length == 5.7 and diametr >= d_min:
-            print ("AB", '57', diametr)
-            #print ("AB", '57', diametr)
             timbers57m[-2][2] += volume57[diametr]
             timbers57m[-2][1] += 1
             add_to_table(diametr = diametr, group = group, table = timbers57m, volumes = volume57)
             add_to_1c(diametr = diametr, table = timbers1C, sort = sort, length = 5.7)
             add_to_log(target = "5.7 метров AB",ind = i, sort = 'AB', length = 5.7, diametr = diametr, timbers_log = timbers_log, timber1 = timber1, timber2 = timber2)
-            print(timbers57m)
 
         elif (sort == "AB") and (length == 6.5) and (diametr >= d_min):
-            print ("AB", '65', diametr)
             timbers57m[-1][2] += volume57[diametr]
             timbers57m[-1][1] += 1
             add_to_table(diametr = diametr, group = group, table = timbers57m, volumes = volume57)
             add_to_1c(diametr = diametr, table = timbers1C, sort = sort, length = 5.7)
             add_to_log(target = "6.2+ метров AB",ind = i, sort = 'AB', length = 5.7, diametr = diametr, timbers_log = timbers_log, timber1 = timber1, timber2 = timber2)
-            print(timbers57m)
 
         elif sort == "E" and length == 6 and diametr >= d_min:
-            #print ("E", '6', diametr)
             timbersE[-1][2] += volume6[diametr]
             timbersE[-1][1] += 1
             add_to_table(diametr = diametr, group = group, table = timbersE, volumes = volume6, length = length)
@@ -139,10 +125,9 @@ def main(timbers, group=[18, 22, 25, 35], mode=6, L1=5.7, L2=6.05, L3=6.20):
             add_to_1c(diametr = diametr, table = timbers1C, sort = sort, length = length)
             add_to_log(target = "{1}м.  сорт:{0}".format(sort, length),ind = i, sort = sort, length = length, diametr = diametr, timbers_log = timbers_log, timber1 = timber1, timber2 = timber2)
         i += p
-
     else:
-        timbers1C = sorted(counting_table(timbers1C), key=lambda rows: (rows[0], -rows[1]), reverse=True)
-    #print (timbers_def, timbers57m, sep='\n')
+        timbers1C = sorted(counting_table(timbers1C), key=lambda rows: (rows[0], -rows[1], rows[2]), reverse=False)
+
     return {'timbers6m': timbers6m, 'timbers57m': timbers57m, 'timbersE': timbersE, 'timbers_def': timbers_def, 'timbers1C': timbers1C, 'timbers_data': timbers_data, 'timbers_log': timbers_log, 'alarms': alarms}
 
 def clear_timbers(timbers, alarms, regsort, d_min = 10, length_min = 2):
@@ -162,7 +147,6 @@ def clear_timbers(timbers, alarms, regsort, d_min = 10, length_min = 2):
         timbers.pop()
         alarms.append("Удалено последнее бревно, т.к. кол-во не четное")
 
-
 def add_to_log(target='Добавлено в список списков', ind = 1, sort = 'AB', length = 9, diametr = 69, timbers_log = None, **timbers):
     """ На входе спис
     timber1 - бревно 1
@@ -173,15 +157,12 @@ def add_to_log(target='Добавлено в список списков', ind =
     """
     timbers_log.append([target, (ind//2+1), sort, length, diametr, *timbers['timber1'], *timbers['timber2']])
 
-    
-
 def add_to_1c(diametr=69, sort='AB', length=6, table = None):
     """Формируем список для таблицы 1C.
     Можно было обойтись без него, но в дальнейшем может пригодится.
     Удобно что тут контролируются все добавления в таблицу
     Через функцию затем, чтобы если что делать подмены и изменять данные если необходимо 
     """
-
     table.append([sort, length, diametr])
 
 def counting_table(table):
@@ -218,8 +199,7 @@ def assign_sort(sort1, sort2, regsort):
     Поменяв местами изменится приоритет присваивания
     regsort - список сортов.
 
-    """
-    
+    """    
     sort = "Металл"
     #FIXME
     #Проверка на вхождение в список и если OK начать проверку сортов.
@@ -267,12 +247,9 @@ def add_to_table(diametr=0, table=None, group=None, volumes=None, length=6):
     Иначе проверяем интервал 
     
     """
-
     group = group or [10, 20, 40, 80]
-
     if diametr < group[0]:
        table[1][1] += 9999
-
     elif diametr >= group[-1]:
         table[len(group)-1][1] += 1
         table[len(group)-1][2] += volumes[diametr]
@@ -289,7 +266,6 @@ def add_to_table_def(diametr, sort, table, regsort, header_def, sort_matching, v
     Пока объем по 6 метрам засчитываем, может считать по фактической длине?
 
     """
-
     table[sort_matching[sort]][1] += 1 
     table[sort_matching[sort]][2] += volumes[diametr]
     table[-1][1] += 1 
@@ -301,18 +277,16 @@ def data_cleaning(basic_info):
     act_num = basic_info['act_num']
     act_num = re.search(r'\d+', act_num).group()
     basic_info['act_num'] = act_num
-
     date_first = basic_info['date_first']
     date_first = re.search(r'\d{2}.\d{2}.\d{4}', date_first).group()
     basic_info['date_first'] = date_first
-
     date_last = basic_info['date_last']
     date_last = re.search(r'\d{2}.\d{2}.\d{4}', date_last).group()
     basic_info['date_last'] = date_last
 
     return basic_info
 
-def export_in_excel(template="template-akt-2021-07.xlsx", **tables):
+def export_in_excel(template="app/doc_template/template-akt-2021-07.xlsx", **tables):
     """Заполнение шаблона excel
     """
     timbers1C = tables['timbers1C']
@@ -332,9 +306,8 @@ def export_in_excel(template="template-akt-2021-07.xlsx", **tables):
     double = Side(border_style="thin", color="000000")
     for row in range(0, len(timbers1C)):
         for col in range(0, len(timbers1C[row])):
-            ws1.cell(column = col+1, row = row+1, value=timbers1C[row][col])
-
-    
+            ws1.cell(column = col+1, row = row+2, value=timbers1C[row][col])
+    ws1.cell(column = 4, row = len(timbers1C)+2, value = '=SUM(D{}:D{})'.format(2, len(timbers1C)+1))
     ws1 = wb['данные']
     for row in range(0, len(timbers_data)):
         for col in range(0, len(timbers_data[row])):
@@ -390,13 +363,12 @@ def export_in_excel(template="template-akt-2021-07.xlsx", **tables):
     if len(alarms) != 0:
         ws1.cell(column = 1, row = 27, value="Во вкладке log есть примечания")
     
-
-    filename = "akt.xlsx"
+    filename = "app/tmp_files/akt/akt.xlsx"
     try:
         wb.save((filename))
     except (OSError, IOError):
         print ("Файл занят")
- 
+    return filename 
 
 
 def test_proccessor():
@@ -436,18 +408,8 @@ def test_proccessor():
     ['33','Сосна', 'AB', '192' ,38, '3,05', '0,096'] , 
     ['34','Сосна', 'E', '192' ,29, '3,05', '0,096'] , 
     ]
-    lst_timber1= [ 
-    ['1','Сосна', 'AB', '192' ,30, '2,75', '0,096'] , 
-    ['2','Сосна', 'AB', '192' ,38, '3,05', '0,096'] , 
-    ['1','Сосна', 'AB', '192' ,28, '2,75', '0,096'] , 
-    ['2','Сосна', 'AB', '192' ,38, '3,05', '0,096'] ,
-    ['1','Сосна', 'AB', '192' ,26, '3,25', '0,096'] , 
-    ['2','Сосна', 'AB', '192' ,38, '3,05', '0,096'] ,
-    ['1','Сосна', 'AB', '192' ,24, '3,25', '0,096'] , 
-    ['2','Сосна', 'AB', '192' ,38, '3,05', '0,096']
-    ]
     basic_info = {
-                'postavshik': 'Арелан',
+                'postavshik': 'Лесозаготовитель',
                 'date_in': '22.01.2011',
                 'place': 'Волхов',
                 'mark': 'Интер',
@@ -456,12 +418,24 @@ def test_proccessor():
                 'act_num': 'АКТ№715 ',
                 'operator': 'Володащик Д.В. ' ,
                 'date_first': '27.07.2021 13:47:37' ,
-                'date_last': '27.07.2021 14:59:59 ',
+                'date_last': '27.07.2021 14:59:59 ',}
+    x = main(lst_timber, group = [18, 20, 22, 24, 26, 34])
 
-    }
+   #export_in_excel(template="template-akt-2021-07.xlsx", 
+   #                timbers1C = x['timbers1C'], 
+   #                timbers_data = x['timbers_data'],
+   #                timbers_log = x['timbers_log'],
+   #                timbers_def = x['timbers_def'],
+   #                timbers57m = x['timbers57m'],
+   #                timbers6m = x['timbers6m'],
+   #                timbersE = x['timbersE'],
+   #                alarms = x['alarms'],
+   #                basic_info = data_cleaning(basic_info)
+   #                )
+
+
+def make_act(lst_timber, basic_info):
     x = main(lst_timber, group = [14, 18, 24, 28, 32, 36])
-
-
     export_in_excel(template="template-akt-2021-07.xlsx", 
                     timbers1C = x['timbers1C'], 
                     timbers_data = x['timbers_data'],
@@ -473,10 +447,6 @@ def test_proccessor():
                     alarms = x['alarms'],
                     basic_info = data_cleaning(basic_info)
                     )
-    #print (*x['timbers6'], *x['timbers57m'], *x['timbers_def'], *x['timbers_data'], sep="\n")
-    #print (*x['timbers1C'], sep='\n')
-
 
 if __name__ == '__main__':
     test_proccessor()
-
